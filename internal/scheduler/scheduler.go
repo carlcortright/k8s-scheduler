@@ -9,13 +9,15 @@ import (
 
 type Scheduler struct {
 	cfg *config.Config
+	k8sClient *k8s.K8sClient
 	nodesListener *NodesListener
 	podsListener *PodsListener
 }
 
-func NewScheduler(cfg *config.Config, nodesListener *NodesListener, podsListener *PodsListener) *Scheduler {
+func NewScheduler(cfg *config.Config, k8sClient *k8s.K8sClient, nodesListener *NodesListener, podsListener *PodsListener) *Scheduler {
 	return &Scheduler{
 		cfg: cfg,
+		k8sClient: k8sClient,
 		nodesListener: nodesListener,
 		podsListener: podsListener,
 	}

@@ -22,6 +22,6 @@ func main() {
 	podsListener := scheduler.NewPodsListener(cfg, k8sClient)
 	podsListener.StartPodsListener()
 
-	scheduler := scheduler.NewScheduler(cfg, nodesListener, podsListener)
+	scheduler := scheduler.NewScheduler(cfg, k8sClient, nodesListener, podsListener)
 	scheduler.StartScheduler()
 }
