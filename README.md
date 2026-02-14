@@ -10,7 +10,7 @@ The design of our scheduler uses two background goroutines (internal/scheduler/n
 
 - Local docker installation 
 - Go 1.24 for running locally
-- Make (for shortccuts)
+- Make (for shortcuts)
 
 ## Setup and Installation 
 
