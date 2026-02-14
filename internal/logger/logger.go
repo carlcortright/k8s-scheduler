@@ -9,7 +9,7 @@ import (
 // Simple singleton logger implementation using zap to log messages to the console
 var logger *zap.Logger
 
-func InitLogger(cfg config.Config) {
+func InitLogger(cfg *config.Config) {
 	if (cfg.Env == "development") {
 		logger, _ = zap.NewDevelopment()
 	} else {
