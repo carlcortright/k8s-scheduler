@@ -4,13 +4,15 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/carlcortright/k8s-scheduler/internal/config"
 	"github.com/carlcortright/k8s-scheduler/internal/logger"
 	"github.com/carlcortright/k8s-scheduler/internal/clients/k8s"
 )
 
 type PodsListener struct {
-	pods []string
+	pods []k8s.PodInfo
 	lastUpdated time.Time
 
 	mutex *sync.Mutex
@@ -38,9 +40,22 @@ func (l *PodsListener) StartPodsListener() {
 			time.Sleep(l.cfg.PollingInterval)
 			l.mutex.Lock()
 
+			pods, err := l.k8sClient.GetPods()
+			if err != nil {
+				log.Error("Failed to get pods", zap.Error(err))
+				continue
+			}
+			
+			l.pods = pods
 
 			l.lastUpdated = time.Now()
 			l.mutex.Unlock()
 		}
 	}()
+}
+
+func (l *PodsListener) GetPods() []k8s.PodInfo {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	return l.pods
 }

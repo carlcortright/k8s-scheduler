@@ -5,6 +5,7 @@ import (
 
 	"github.com/carlcortright/k8s-scheduler/internal/logger"
 	"github.com/carlcortright/k8s-scheduler/internal/config"
+	"github.com/carlcortright/k8s-scheduler/internal/clients/k8s"
 )
 
 type Scheduler struct {

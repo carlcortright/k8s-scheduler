@@ -37,9 +37,22 @@ func (l *NodesListener) StartNodesListener() {
 		for {
 			time.Sleep(l.cfg.PollingInterval)
 			l.mutex.Lock()
-			log.Info("Nodes listener updated at", zap.String("time", time.Now().Format(time.RFC3339)))
+
+			nodes, err := l.k8sClient.GetNodes()
+			if err != nil {
+				log.Error("Failed to get nodes", zap.Error(err))
+				continue
+			}
+			l.nodes = nodes
+
 			l.lastUpdated = time.Now()
 			l.mutex.Unlock()
 		}
 	}()
+}
+
+func (l *NodesListener) GetNodes() []string {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	return l.nodes
 }
