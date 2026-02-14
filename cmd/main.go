@@ -1,7 +1,18 @@
 package main
 
-import "log"
+import (
+	"github.com/carlcortright/k8s-scheduler/internal/config"
+	"github.com/carlcortright/k8s-scheduler/internal/logger"
+)
 
 func main() {
-	log.Println("Starting custom kubernetes scheduler....")
+	cfg := config.Get()
+	logger.InitLogger(cfg)
+
+	log := logger.GetLogger()
+	log.Info("Starting custom kubernetes scheduler....")
+
+	
+
+
 }

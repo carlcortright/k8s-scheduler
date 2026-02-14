@@ -17,6 +17,10 @@ A basic scheduler implementation for k8s, hand crafted with :heart:
 
 `minikube start --nodes 2`
 
+### Deploy scheduler to your local cluster [todo]
+
+`make deploy-local`
+
 # Useful Docs 
 
 [Kube Scheduler](https://kubernetes.io/docs/concepts/scheduling-eviction/kube-scheduler/)
