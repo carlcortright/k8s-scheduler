@@ -17,6 +17,9 @@ expose-locally:
 list-pods:
 	kubectl get pods 
 
+list-nodes:
+	kubectl get nodes
+
 # Scheduler commands
 deploy-scheduler:
 	echo "Deploying custom scheduler to local cluster..."
@@ -41,3 +44,6 @@ scheduler-describe:
 # Integration tests
 basic-integration-test:
 	bash ./scripts/basic-integration-test.sh
+
+priority-integration-test:
+	bash ./scripts/priority-integration-test.sh

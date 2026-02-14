@@ -7,6 +7,8 @@ echo "Deploying test pod (scheduler must already be running in cluster)..."
 # Ensure custom namespace exists
 kubectl create namespace custom-scheduler-namespace --dry-run=client -o yaml | kubectl apply -f -
 
+kubectl apply -f infra/test/priority-class.yaml
+
 kubectl apply -f infra/test/basic-test-container.yaml
 
 echo "Waiting for pod to appear in cluster..."

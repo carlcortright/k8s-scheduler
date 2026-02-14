@@ -60,6 +60,22 @@ The following command will run an integration test which runs the scheduler, sch
 make basic-integration-test
 ```
 
+### Priority integration test (removing lower-priorty pods)
+
+The following command will schedule and confirm 3 basic pods with a lower priority, then wait, then schedule a pod with a higher priorty and confirm one of the basic pods was evicted
+
+# Scheduling Retry
+
+
+
+# Performance improvements
+
+
+
+# Future improvements
+
+
+
 
 # Useful Docs 
 

@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"sync"
 	"time"
 
 	"github.com/carlcortright/k8s-scheduler/internal/config"
@@ -13,18 +14,22 @@ import (
 const bindRetries = 6
 
 type Scheduler struct {
-	cfg *config.Config
-	k8sClient *k8s.K8sClient
+	cfg           *config.Config
+	k8sClient     *k8s.K8sClient
 	nodesListener *NodesListener
-	podsListener *PodsListener
+	podsListener  *PodsListener
+
+	mu      sync.Mutex
+	podsMap map[string]k8s.PodInfo // pod-name -> PodInfo, kept in sync with poller + bind/evict so that we don't have to block on pod or node api calls
 }
 
 func NewScheduler(cfg *config.Config, k8sClient *k8s.K8sClient, nodesListener *NodesListener, podsListener *PodsListener) *Scheduler {
 	return &Scheduler{
-		cfg: cfg,
-		k8sClient: k8sClient,
+		cfg:           cfg,
+		k8sClient:     k8sClient,
 		nodesListener: nodesListener,
-		podsListener: podsListener,
+		podsListener:  podsListener,
+		podsMap:       make(map[string]k8s.PodInfo),
 	}
 }	
 
@@ -41,15 +46,27 @@ func (s *Scheduler) StartScheduler() {
 			continue
 		}
 
-		usedNodes := make(map[string]struct{})
+		// Refresh internal map from poller (source of truth). Key = pod name (single namespace).
+		s.mu.Lock()
+		s.podsMap = make(map[string]k8s.PodInfo, len(pods))
 		for _, p := range pods {
+			s.podsMap[p.Name] = p
+		}
+		podsCopy := make([]k8s.PodInfo, 0, len(s.podsMap))
+		for _, p := range s.podsMap {
+			podsCopy = append(podsCopy, p)
+		}
+		s.mu.Unlock()
+
+		usedNodes := make(map[string]struct{})
+		for _, p := range podsCopy {
 			if p.SchedulerName == s.cfg.SchedulerName && p.NodeName != "" {
 				usedNodes[p.NodeName] = struct{}{}
 			}
 		}
 
 		var pending []k8s.PodInfo
-		for _, p := range pods {
+		for _, p := range podsCopy {
 			if p.SchedulerName == s.cfg.SchedulerName && p.Phase == "Pending" && p.NodeName == "" {
 				pending = append(pending, p)
 			}
@@ -71,10 +88,28 @@ func (s *Scheduler) StartScheduler() {
 				log.Error("Failed to bind pod after retries", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.String("node", chosen), zap.Error(err))
 				continue
 			}
+			s.recordBind(pod.Name, chosen)
 			usedNodes[chosen] = struct{}{}
 			log.Info("Bound pod to node", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.String("node", chosen))
 		}
 	}
+}
+
+// recordBind updates the internal pods map after a successful bind.
+func (s *Scheduler) recordBind(podName, nodeName string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if p, ok := s.podsMap[podName]; ok {
+		p.NodeName = nodeName
+		s.podsMap[podName] = p
+	}
+}
+
+// recordEvict removes the pod from the internal map after a successful eviction.
+func (s *Scheduler) recordEvict(podName string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.podsMap, podName)
 }
 
 // bind node to pod with exponential backoff for retries
@@ -89,6 +124,25 @@ func (s *Scheduler) bindPodToNodeWithRetry(pod k8s.PodInfo, nodeName string) err
 		}
 		if attempt < bindRetries {
 			log.Warn("Bind failed, retrying", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.Int("attempt", attempt+1), zap.Duration("backoff", backoff), zap.Error(lastErr))
+			time.Sleep(backoff)
+			backoff *= 2
+		}
+	}
+	return lastErr
+}
+
+// evictPodWithRetry evicts a pod with exponential backoff for up to bindRetries retries.
+func (s *Scheduler) evictPodWithRetry(pod k8s.PodInfo) error {
+	log := logger.GetLogger()
+	var lastErr error
+	backoff := time.Second
+	for attempt := 0; attempt <= bindRetries; attempt++ {
+		lastErr = s.k8sClient.EvictPod(pod.Namespace, pod.Name)
+		if lastErr == nil {
+			return nil
+		}
+		if attempt < bindRetries {
+			log.Warn("Evict failed, retrying", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.Int("attempt", attempt+1), zap.Duration("backoff", backoff), zap.Error(lastErr))
 			time.Sleep(backoff)
 			backoff *= 2
 		}

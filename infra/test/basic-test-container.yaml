@@ -5,6 +5,7 @@ metadata:
   namespace: custom-scheduler-namespace
 spec:
   schedulerName: custom-scheduler
+  priorityClassName: low-priority
   containers:
     - name: app
       image: nginx:alpine
