@@ -29,7 +29,7 @@ func init() {
 	v.SetDefault("k8s.api-server-url", "http://localhost:8080")
 	v.SetDefault("k8s.auth-token-path", "")
 	v.SetDefault("polling-interval", 1*time.Second)
-	v.SetDefault("namespace", "custom-scheduler-namespace")
+	v.SetDefault("custom-pods-namespace", "custom-scheduler-namespace")
 
 	_ = v.BindEnv("k8s.api-server-url", "K8S_API_SERVER_URL")
 	_ = v.BindEnv("k8s.auth-token-path", "K8S_AUTH_TOKEN_PATH")
@@ -45,6 +45,6 @@ func Get() *Config {
 		K8sAPIServerURL:  v.GetString("k8s.api-server-url"),
 		K8sAuthTokenPath:  v.GetString("k8s.auth-token-path"),
 		PollingInterval:  v.GetDuration("polling-interval"),
-		Namespace:        v.GetString("namespace"),
+		Namespace:        v.GetString("custom-pods-namespace"),
 	}
 }

@@ -116,7 +116,7 @@ func (c *K8sClient) GetNodes() ([]string, error) {
 
 // GetPods returns pods from all namespaces. Caller can filter by schedulerName and phase.
 func (c *K8sClient) GetPods() ([]PodInfo, error) {
-	url := c.BaseURL + "/api/v1/pods"
+	url := c.BaseURL + "/api/v1/namespaces/" + c.cfg.Namespace + "/pods"
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

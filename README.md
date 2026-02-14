@@ -14,10 +14,12 @@ The design of our scheduler uses two background goroutines (internal/scheduler/n
 
 ## Setup and Installation 
 
-### Installing minikube (macos apple silicon)
+### Installing dependencies (untested, mac)
 
-```
-brew install minikube
+Install requirements on mac:
+
+```bash
+make setup
 ```
 
 ### Start Minikube
@@ -44,10 +46,19 @@ Before running integration tests deploy the scheduler to the cluster:
 make deploy-scheduler
 ```
 
+When complete with integration tests run the following to tear down the scheduler pod:
+
+```bash
+make remove-scheduler
+```
+
 ### Basic integration test (scheduling a pod)
 
 The following command will run an integration test which runs the scheduler, schedules a pod, confirms it's scheduled then tears everything down:
 
+```bash
+make basic-integration-test
+```
 
 
 # Useful Docs 

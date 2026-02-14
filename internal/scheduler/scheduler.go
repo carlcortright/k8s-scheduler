@@ -6,6 +6,8 @@ import (
 	"github.com/carlcortright/k8s-scheduler/internal/logger"
 	"github.com/carlcortright/k8s-scheduler/internal/config"
 	"github.com/carlcortright/k8s-scheduler/internal/clients/k8s"
+
+	"go.uber.org/zap"
 )
 
 type Scheduler struct {
@@ -30,7 +32,11 @@ func (s *Scheduler) StartScheduler() {
 
 	for {
 		time.Sleep(s.cfg.PollingInterval)
-		log.Info("Scheduler running....")
+
+		pods := s.podsListener.GetPods()
+		for _, pod := range pods {
+			log.Info("Pod: ", zap.String("pod", pod.Name))
+		}
 
 		// TODO: implement scheduler logic
 	}

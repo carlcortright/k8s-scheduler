@@ -1,5 +1,9 @@
-run: 
-	go run ./cmd/main.go
+# Untested, best attempt at setup deps for mac
+setup:
+	brew install minikube
+	brew install kubectl
+	brew install docker
+	brew install go@1.24
 
 # Minikube commands
 start-minikube:
@@ -9,6 +13,9 @@ start-minikube:
 
 expose-locally:
 	kubectl proxy --port=8080
+
+list-pods:
+	kubectl get pods 
 
 # Scheduler commands
 deploy-scheduler:
