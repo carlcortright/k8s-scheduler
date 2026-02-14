@@ -4,7 +4,7 @@ A basic scheduler implementation for k8s, hand crafted with :heart: in Golang
 
 ## Scheduler design 
 
-The design of our scheduler uses 
+The design of our scheduler uses two background goroutines (internal/scheduler/nodes-listener.go and internal/scheduler/pods-listener.go) to poll the cluster to get the latest list of nodes and pods available to the scheduler. These maintain an accessible in-memory representation of the current state of the cluster. The scheduler acts as the main thread which implements the scheduling logic using the bind endpoint in kubernetes to bind new pods to their respective nodes while obeying the priority consideration
 
 ## Requirements
 
