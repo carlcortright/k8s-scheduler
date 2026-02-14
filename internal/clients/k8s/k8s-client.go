@@ -39,6 +39,8 @@ type podList struct {
 	Items []podItem `json:"items"`
 }
 
+const PodGroupAnnotationKey = "pod-group"
+
 type podItem struct {
 	Metadata struct {
 		Name        string            `json:"name"`
@@ -61,11 +63,6 @@ type PodInfo struct {
 	SchedulerName string
 	Phase         string
 	PodGroup      string 
-}
-
-type PodWatchEvent struct {
-	Type string 
-	Pod  PodInfo
 }
 
 func (c *K8sClient) GetNodes() ([]string, error) {

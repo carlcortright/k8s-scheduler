@@ -10,7 +10,7 @@ import (
 )
 
 type PodsListener struct {
-	nodes []string
+	pods []string
 	lastUpdated time.Time
 
 	mutex *sync.Mutex
