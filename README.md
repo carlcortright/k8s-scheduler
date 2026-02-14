@@ -28,10 +28,10 @@ make setup
 make start-minikube
 ```
 
-### Deploy scheduler to your local cluster [todo]
+### Deploy scheduler to your local cluster 
 
 ```bash
-make deploy-local
+make deploy-scheduler
 ```
 
 ## Development 
@@ -62,7 +62,19 @@ make basic-integration-test
 
 ### Priority integration test (removing lower-priorty pods)
 
-The following command will schedule and confirm 3 basic pods with a lower priority, then wait, then schedule a pod with a higher priorty and confirm one of the basic pods was evicted
+The following command will schedule and confirm 3 basic pods with a lower priority, then wait, then schedule a pod with a higher priorty and confirm one of the basic pods was evicted:
+
+```bash
+make priority-integration-test
+```
+
+### Gang grouping integration test 
+
+The following command will test gang grouping by first successfully scheduling a gang group, then creating a setup where a gang group shouldn't be scheduled and confirming it doesnt:
+
+```bash
+make group-integration-test
+```
 
 # Scheduling Retry
 

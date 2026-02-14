@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: group-test-1
+  name: group-test-4
   namespace: custom-scheduler-namespace
   annotations:
     pod-group: "group-critical-queue"
@@ -14,7 +14,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: group-test-2
+  name: group-test-5
   namespace: custom-scheduler-namespace
   annotations:
     pod-group: "group-critical-queue"
@@ -27,7 +27,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: group-test-3
+  name: group-test-6
   namespace: custom-scheduler-namespace
   annotations:
     pod-group: "group-critical-queue"

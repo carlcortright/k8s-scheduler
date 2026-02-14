@@ -47,3 +47,6 @@ basic-integration-test:
 
 priority-integration-test:
 	bash ./scripts/priority-integration-test.sh
+
+group-integration-test:
+	bash ./scripts/group-integration-test.sh

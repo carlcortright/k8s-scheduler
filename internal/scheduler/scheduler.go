@@ -72,7 +72,6 @@ func (s *Scheduler) StartScheduler() {
 			}
 		}
 
-		// node -> pod name (one of our scheduled pods on that node)
 		nodeToPod := make(map[string]k8s.PodInfo)
 		for _, p := range podsCopy {
 			if p.SchedulerName == s.cfg.SchedulerName && p.NodeName != "" {
@@ -80,29 +79,45 @@ func (s *Scheduler) StartScheduler() {
 			}
 		}
 
+		groups := make(map[string][]k8s.PodInfo)
+		for _, p := range pending {
+			key := p.PodGroup
+			if key == "" {
+				key = p.Name
+			}
+			groups[key] = append(groups[key], p)
+		}
+
 		var unplaced []k8s.PodInfo
-		for _, pod := range pending {
-			var chosen string
+		for _, groupPods := range groups {
+			var freeNodes []string
 			for _, n := range nodes {
 				if _, used := usedNodes[n]; !used {
-					chosen = n
+					freeNodes = append(freeNodes, n)
+				}
+			}
+			if len(freeNodes) < len(groupPods) {
+				unplaced = append(unplaced, groupPods...)
+				continue
+			}
+			allOk := true
+			for i := range groupPods {
+				if err := s.bindPodToNodeWithRetry(groupPods[i], freeNodes[i]); err != nil {
+					log.Error("Failed to bind pod after retries", zap.String("pod", groupPods[i].Namespace+"/"+groupPods[i].Name), zap.String("node", freeNodes[i]), zap.Error(err))
+					allOk = false
 					break
 				}
 			}
-			if chosen == "" {
-				unplaced = append(unplaced, pod)
-				log.Warn("No free node for pod", zap.String("pod", pod.Namespace+"/"+pod.Name))
-				continue
+			if allOk {
+				for i := range groupPods {
+					s.recordBind(groupPods[i].Name, freeNodes[i])
+					usedNodes[freeNodes[i]] = struct{}{}
+					nodeToPod[freeNodes[i]] = groupPods[i]
+					log.Info("Bound pod to node", zap.String("pod", groupPods[i].Namespace+"/"+groupPods[i].Name), zap.String("node", freeNodes[i]))
+				}
+			} else {
+				unplaced = append(unplaced, groupPods...)
 			}
-			if err := s.bindPodToNodeWithRetry(pod, chosen); err != nil {
-				log.Error("Failed to bind pod after retries", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.String("node", chosen), zap.Error(err))
-				unplaced = append(unplaced, pod)
-				continue
-			}
-			s.recordBind(pod.Name, chosen)
-			usedNodes[chosen] = struct{}{}
-			nodeToPod[chosen] = pod
-			log.Info("Bound pod to node", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.String("node", chosen))
 		}
 
 		// Preemption: for each unplaced pending pod, if it has higher priority than a scheduled pod, evict and bind.
