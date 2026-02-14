@@ -6,6 +6,8 @@ import (
 
 	"github.com/carlcortright/k8s-scheduler/internal/config"
 	"github.com/carlcortright/k8s-scheduler/internal/logger"
+	"github.com/carlcortright/k8s-scheduler/internal/clients/k8s"
+
 	"go.uber.org/zap"
 )
 
@@ -15,13 +17,15 @@ type NodesListener struct {
 	lastUpdated time.Time
 
 	cfg *config.Config
+	k8sClient *k8s.K8sClient	
 }
 
-func NewNodesListener(cfg *config.Config) *NodesListener {
+func NewNodesListener(cfg *config.Config, k8sClient *k8s.K8sClient) *NodesListener {
 	return &NodesListener{
 		nodes: nil,
 		mutex: &sync.Mutex{},
 		cfg: cfg,
+		k8sClient: k8sClient,
 	}
 }
 
@@ -31,7 +35,7 @@ func (l *NodesListener) StartNodesListener() {
 
 	go func() {
 		for {
-			time.Sleep(1 * time.Second)
+			time.Sleep(l.cfg.PollingInterval)
 			l.mutex.Lock()
 			log.Info("Nodes listener updated at", zap.String("time", time.Now().Format(time.RFC3339)))
 			l.lastUpdated = time.Now()
