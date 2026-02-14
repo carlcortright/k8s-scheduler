@@ -1,10 +1,22 @@
 # k8s-scheduler
 
-A basic scheduler implementation for k8s, hand crafted with :heart: in Golang
+A basic scheduler implementation for k8s, hand crafted with :heart:
+
+## Stack
+
+- Golang for efficency and parallel execution 
+- Zap for logging in development and production (fast logging)
+- k8s API calls via net/http and a custom client
+- viper for configuration management 
+- make for easy local development
 
 ## Scheduler design 
 
-The design of our scheduler uses two background goroutines (internal/scheduler/nodes-listener.go and internal/scheduler/pods-listener.go) to poll the cluster to get the latest list of nodes and pods available to the scheduler. These maintain an accessible in-memory representation of the current state of the cluster. The scheduler acts as the main thread which implements the scheduling logic using the bind endpoint in kubernetes to bind new pods to their respective nodes while obeying the priority consideration
+The scheduler has two main components: 
+- Core loop on the polling interval which handles all of the business logic (internal/scheduler/scheduler.go) and maintains an in-memory map of both nodes and pods
+- Two background goroutines (internal/scheduler/nodes-listener.go and internal/scheduler/pods-listener.go) to poll the cluster to get the latest list of nodes and pods available to the scheduler and sync in-memory maps of pods we're tracking synced with any new pods an external service adds to the namespace while unblocking expensive network calls
+
+In addition it also has logging and configuration implemented for easy deployment and debugging. 
 
 ## Requirements
 
@@ -33,10 +45,6 @@ make start-minikube
 ```bash
 make deploy-scheduler
 ```
-
-## Development 
-
-This is for running the scheduler on your local machine and letting it talk to the local cluster via an exposed port. The command `make start-minikube` then `make expose-locally` exposes the minikube cluster locally. Use `make run` to run the scheduler to talk to this cluster on localhost:8080. 
 
 ## Run integration tests 
 
@@ -78,15 +86,11 @@ make group-integration-test
 
 # Scheduling Retry
 
+The scheduler object uses backoff retry for binding and evicting pods (see internal/scheduler/scheduler.go). This ensures that pods are correctly bound or evicted while not overwhelming internal APIs in the case of failure. 
 
+# Performance improvements on large clusters
 
-# Performance improvements
-
-
-
-# Future improvements
-
-
+One potential improvement we could make with more time would be to instead of blocking on cluster updates (bind, evict) implement some sort of queueing mechanism that unblocks the main scheduler thread and tracks which pods are being actively updated. This way we could potentially bind / evict multiple pods at the same time in the case of a cluster that has thousands or 10s of thousands of pods. 
 
 
 # Useful Docs 
