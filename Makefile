@@ -5,3 +5,6 @@ start-minikube:
 	minikube start
 	echo "Minikube started, exposing kubernetes API on port 8080 locally for development"
 	kubectl proxy --port=8080
+
+deploy-scheduler:
+	bash ./scripts/deploy-scheduler.sh
