@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: basic-test
+  namespace: custom-scheduler-namespace
+spec:
+  schedulerName: custom-scheduler
+  containers:
+    - name: app
+      image: nginx:alpine

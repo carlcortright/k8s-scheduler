@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: group-test
+  namespace: custom-scheduler-namespace
+  annotations:
+    pod-group: "group-critical-queue"
+spec:
+  schedulerName: custom-scheduler
+  containers:
+    - name: app
+      image: nginx:alpine
