@@ -1,6 +1,10 @@
 # k8s-scheduler
 
-A basic scheduler implementation for k8s, hand crafted with :heart:
+A basic scheduler implementation for k8s, hand crafted with :heart: in Golang
+
+## Scheduler design 
+
+The design of our scheduler uses 
 
 ## Requirements
 

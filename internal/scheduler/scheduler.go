@@ -25,5 +25,7 @@ func (s *Scheduler) StartScheduler() {
 	for {
 		time.Sleep(1 * time.Second)
 		log.Info("Scheduler running....")
+
+		// TODO: implement scheduler logic
 	}
 }
