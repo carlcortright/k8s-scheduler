@@ -74,6 +74,7 @@ type podItem struct {
 	Spec struct {
 		SchedulerName string `json:"schedulerName"`
 		NodeName      string `json:"nodeName"`
+		Priority      *int32 `json:"priority,omitempty"`
 	} `json:"spec"`
 	Status struct {
 		Phase string `json:"phase"`
@@ -86,7 +87,8 @@ type PodInfo struct {
 	NodeName      string
 	SchedulerName string
 	Phase         string
-	PodGroup      string 
+	PodGroup      string
+	Priority      int32 // from spec.priority (set by PriorityClass)
 }
 
 func (c *K8sClient) GetNodes() ([]string, error) {
@@ -145,6 +147,10 @@ func podItemToPodInfo(p *podItem) PodInfo {
 	if p.Metadata.Annotations != nil {
 		group = p.Metadata.Annotations[PodGroupAnnotationKey]
 	}
+	prio := int32(0)
+	if p.Spec.Priority != nil {
+		prio = *p.Spec.Priority
+	}
 	return PodInfo{
 		Namespace:     p.Metadata.Namespace,
 		Name:          p.Metadata.Name,
@@ -152,6 +158,7 @@ func podItemToPodInfo(p *podItem) PodInfo {
 		SchedulerName: p.Spec.SchedulerName,
 		Phase:         p.Status.Phase,
 		PodGroup:      group,
+		Priority:      prio,
 	}
 }
 
@@ -212,9 +219,13 @@ func (c *K8sClient) EvictPod(namespace, podName string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("evict pod %s/%s: %s %s", namespace, podName, resp.Status, string(b))
+	if resp.StatusCode == http.StatusOK {
+		return nil
 	}
-	return nil
+	// 404 = pod already gone (evicted or deleted); treat as success so retries don't fail.
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	b, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("evict pod %s/%s: %s %s", namespace, podName, resp.Status, string(b))
 }

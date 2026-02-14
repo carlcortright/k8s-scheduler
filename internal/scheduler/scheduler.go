@@ -72,6 +72,15 @@ func (s *Scheduler) StartScheduler() {
 			}
 		}
 
+		// node -> pod name (one of our scheduled pods on that node)
+		nodeToPod := make(map[string]k8s.PodInfo)
+		for _, p := range podsCopy {
+			if p.SchedulerName == s.cfg.SchedulerName && p.NodeName != "" {
+				nodeToPod[p.NodeName] = p
+			}
+		}
+
+		var unplaced []k8s.PodInfo
 		for _, pod := range pending {
 			var chosen string
 			for _, n := range nodes {
@@ -81,16 +90,50 @@ func (s *Scheduler) StartScheduler() {
 				}
 			}
 			if chosen == "" {
+				unplaced = append(unplaced, pod)
 				log.Warn("No free node for pod", zap.String("pod", pod.Namespace+"/"+pod.Name))
 				continue
 			}
 			if err := s.bindPodToNodeWithRetry(pod, chosen); err != nil {
 				log.Error("Failed to bind pod after retries", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.String("node", chosen), zap.Error(err))
+				unplaced = append(unplaced, pod)
 				continue
 			}
 			s.recordBind(pod.Name, chosen)
 			usedNodes[chosen] = struct{}{}
+			nodeToPod[chosen] = pod
 			log.Info("Bound pod to node", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.String("node", chosen))
+		}
+
+		// Preemption: for each unplaced pending pod, if it has higher priority than a scheduled pod, evict and bind.
+		for _, pod := range unplaced {
+			var victimNode string
+			var victim k8s.PodInfo
+			for _, n := range nodes {
+				if cur, ok := nodeToPod[n]; ok && cur.Priority < pod.Priority {
+					victimNode = n
+					victim = cur
+					break
+				}
+			}
+			if victimNode == "" {
+				continue
+			}
+			if err := s.evictPodWithRetry(victim); err != nil {
+				log.Error("Preemption evict failed", zap.String("victim", victim.Namespace+"/"+victim.Name), zap.Error(err))
+				continue
+			}
+			s.recordEvict(victim.Name)
+			delete(usedNodes, victimNode)
+			delete(nodeToPod, victimNode)
+			if err := s.bindPodToNodeWithRetry(pod, victimNode); err != nil {
+				log.Error("Preemption bind failed after evict", zap.String("pod", pod.Namespace+"/"+pod.Name), zap.String("node", victimNode), zap.Error(err))
+				continue
+			}
+			s.recordBind(pod.Name, victimNode)
+			usedNodes[victimNode] = struct{}{}
+			nodeToPod[victimNode] = pod
+			log.Info("Preempted", zap.String("victim", victim.Namespace+"/"+victim.Name), zap.String("node", victimNode), zap.String("replacement", pod.Namespace+"/"+pod.Name))
 		}
 	}
 }
