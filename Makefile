@@ -7,7 +7,7 @@ setup:
 
 # Minikube commands
 start-minikube:
-	minikube start
+	minikube start --nodes 3
 	kubectl create namespace custom-scheduler-namespace
 	echo "Minikube started, exposing kubernetes API on port 8080 locally for development"
 

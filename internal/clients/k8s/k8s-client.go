@@ -162,6 +162,7 @@ func (c *K8sClient) BindPodToNode(namespace, podName, nodeName string) error {
 	body := map[string]interface{}{
 		"apiVersion": "v1",
 		"kind":       "Binding",
+		"metadata":   map[string]string{"name": podName},
 		"target":     map[string]string{"name": nodeName},
 	}
 	raw, err := json.Marshal(body)
@@ -181,6 +182,39 @@ func (c *K8sClient) BindPodToNode(namespace, podName, nodeName string) error {
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("bind pod %s/%s to %s: %s %s", namespace, podName, nodeName, resp.Status, string(b))
+	}
+	return nil
+}
+
+// EvictPod evicts a pod from its node (API-initiated eviction). The pod will be rescheduled.
+// Requires RBAC: create on pods/eviction subresource in the pod's namespace.
+func (c *K8sClient) EvictPod(namespace, podName string) error {
+	url := fmt.Sprintf("%s/api/v1/namespaces/%s/pods/%s/eviction", c.BaseURL, namespace, podName)
+	body := map[string]interface{}{
+		"apiVersion": "policy/v1",
+		"kind":       "Eviction",
+		"metadata": map[string]string{
+			"name":      podName,
+			"namespace": namespace,
+		},
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("evict pod %s/%s: %s %s", namespace, podName, resp.Status, string(b))
 	}
 	return nil
 }
