@@ -3,10 +3,12 @@ package k8s
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/carlcortright/k8s-scheduler/internal/config"
@@ -19,11 +21,33 @@ type K8sClient struct {
 }
 
 func NewK8sClient(cfg *config.Config) *K8sClient {
+	baseURL := strings.TrimSuffix(cfg.K8sAPIServerURL, "/")
+	var transport http.RoundTripper = http.DefaultTransport
+	if strings.HasPrefix(baseURL, "https://") {
+		transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	}
+	if cfg.K8sAuthTokenPath != "" {
+		token, err := os.ReadFile(cfg.K8sAuthTokenPath)
+		if err == nil {
+			transport = &authTransport{base: transport, token: strings.TrimSpace(string(token))}
+		}
+	}
 	return &K8sClient{
 		cfg:     cfg,
-		BaseURL: strings.TrimSuffix(cfg.K8sAPIServerURL, "/"),
-		client:  &http.Client{},
+		BaseURL: baseURL,
+		client:  &http.Client{Transport: transport},
 	}
+}
+
+type authTransport struct {
+	base  http.RoundTripper
+	token string
+}
+
+func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req2 := req.Clone(req.Context())
+	req2.Header.Set("Authorization", "Bearer "+t.token)
+	return t.base.RoundTrip(req2)
 }
 
 

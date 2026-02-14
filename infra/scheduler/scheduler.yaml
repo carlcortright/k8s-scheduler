@@ -1,0 +1,72 @@
+# Minimal deploy: namespace, RBAC, and one scheduler Deployment.
+# Build image and load into cluster (e.g. minikube image load custom-scheduler:latest),
+# then: kubectl apply -f infra/scheduler/scheduler.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: custom-scheduler
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: custom-scheduler
+  namespace: custom-scheduler
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: custom-scheduler
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/binding"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: custom-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: custom-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: custom-scheduler
+    namespace: custom-scheduler
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-scheduler
+  namespace: custom-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: custom-scheduler
+  template:
+    metadata:
+      labels:
+        app: custom-scheduler
+    spec:
+      serviceAccountName: custom-scheduler
+      containers:
+        - name: scheduler
+          image: custom-scheduler:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: K8S_API_SERVER_URL
+              value: "https://kubernetes.default.svc"
+            - name: K8S_AUTH_TOKEN_PATH
+              value: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+            - name: SCHEDULER_NAME
+              value: "custom-scheduler"
+            - name: NAMESPACE
+              value: "custom-scheduler"

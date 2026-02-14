@@ -16,19 +16,39 @@ The design of our scheduler uses two background goroutines (internal/scheduler/n
 
 ### Installing minikube (macos apple silicon)
 
-`brew install minikube`
+```
+brew install minikube
+```
 
 ### Start Minikube
 
-`make start-minikube`
+```bash
+make start-minikube
+```
 
 ### Deploy scheduler to your local cluster [todo]
 
-`make deploy-local`
+```bash
+make deploy-local
+```
 
 ## Development 
 
-The command `make start-minikube` exposes the minikube cluster locally. Use `make run` to run the scheduler to talk to this cluster on localhost:8080
+This is for running the scheduler on your local machine and letting it talk to the local cluster via an exposed port. The command `make start-minikube` then `make expose-locally` exposes the minikube cluster locally. Use `make run` to run the scheduler to talk to this cluster on localhost:8080. 
+
+## Run integration tests 
+
+Before running integration tests deploy the scheduler to the cluster:
+
+```bash
+make deploy-scheduler
+```
+
+### Basic integration test (scheduling a pod)
+
+The following command will run an integration test which runs the scheduler, schedules a pod, confirms it's scheduled then tears everything down:
+
+
 
 # Useful Docs 
 
